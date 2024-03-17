@@ -1,12 +1,18 @@
-use iced::widget::{button, column, text, Column};
+use iced::widget::{button, column, text};
+use iced::{Application, Command, Element, Settings, Theme};
 
 #[derive(Default)]
 struct Counter {
     value: i32,
 }
 
-impl Counter {
-    pub fn view(&self) -> Column<Message> {
+impl Application for Counter {
+    type Executor = iced::executor::Default;
+    type Message = Message;
+    type Flags = ();
+    type Theme = Theme;
+
+    fn view(&self) -> Element<Message> {
         // We use a column: a simple vertical layout
         column![
             // The increment button. We tell it to produce an
@@ -19,10 +25,18 @@ impl Counter {
             // The decrement button. We tell it to produce a
             // `Decrement` message when pressed
             button("-").on_press(Message::Decrement),
-        ]
+        ].into()
     }
 
-    pub fn update(&mut self, message: Message) {
+    fn new(_flags: ()) -> (Counter, Command<Self::Message>) {
+        (Counter::default(), Command::none())
+    }
+
+    fn title(&self) -> String {
+        String::from("A simple counter")
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::Increment => {
                 self.value += 1;
@@ -31,6 +45,7 @@ impl Counter {
                 self.value -= 1;
             }
         }
+        Command::none()
     }
 }
 
@@ -41,5 +56,5 @@ pub enum Message {
 }
 
 fn main() {
-    println!("Hello, world!");
+    Counter::run(Settings::default()).expect("run failed");
 }
