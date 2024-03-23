@@ -48,6 +48,7 @@ enum Message {
     FileSaved(Result<PathBuf, Error>),
     TabSelected(usize),
     TabClosed(usize),
+    TabNew,
 }
 
 impl Application for Editor {
@@ -148,6 +149,17 @@ impl Application for Editor {
             Message::TabClosed(index) => {
                 Command::none()
             }
+            Message::TabNew => {
+                let fragment_content = FragmentContent {
+                    file: None,
+                    content: text_editor::Content::new(),
+                    is_loading: true,
+                    is_dirty: false,
+                };
+                self.fragments.push(fragment_content);
+                self.fragment_index = self.fragments.len() - 1;
+                Command::none()
+            }
         }
     }
 
@@ -173,6 +185,11 @@ impl Application for Editor {
                 save_icon(),
                 "Save file",
                 self.fragments[idx].is_dirty.then_some(Message::SaveFile)
+            ),
+            action(
+                new_tab_icon(),
+                "New Tab",
+                Some(Message::TabNew)
             ),
             horizontal_space(),
             pick_list(
@@ -341,6 +358,10 @@ fn new_icon<'a, Message>() -> Element<'a, Message> {
 }
 
 fn save_icon<'a, Message>() -> Element<'a, Message> {
+    icon('\u{0e801}')
+}
+
+fn new_tab_icon<'a, Message>() -> Element<'a, Message> {
     icon('\u{0e801}')
 }
 
