@@ -144,6 +144,7 @@ impl Application for Editor {
                 Command::none()
             }
             Message::TabSelected(index) => {
+                self.fragment_index = index;
                 Command::none()
             }
             Message::TabClosed(index) => {
