@@ -153,7 +153,14 @@ impl Application for Editor {
                 // This should eventually move to adjacent tabs
                 self.fragment_index = 0;
 
-                //TODO: Does not deal with empty tab set. Create a new tab in that case
+                if self.fragments.is_empty() {
+                    self.fragments.push(FragmentContent {
+                        file: None,
+                        content: text_editor::Content::new(),
+                        is_loading: false,
+                        is_dirty: false,
+                    });
+                }
                 Command::none()
             }
             Message::TabNew => {
