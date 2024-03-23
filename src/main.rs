@@ -148,6 +148,12 @@ impl Application for Editor {
                 Command::none()
             }
             Message::TabClosed(index) => {
+                self.fragments.remove(index);
+                // Reset to the first tab if the current one was removed
+                // This should eventually move to adjacent tabs
+                self.fragment_index = 0;
+
+                //TODO: Does not deal with empty tab set. Create a new tab in that case
                 Command::none()
             }
             Message::TabNew => {
