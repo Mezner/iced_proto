@@ -238,7 +238,12 @@ impl Application for Editor {
                 TabBar::new(Message::TabSelected),
                 |tab_bar, fragment| {
                     let label = if let Some(file) = &fragment.file {
-                        TabLabel::Text(file.display().to_string())
+                        let file_name = file
+                            .file_name()
+                            .and_then(ffi::OsStr::to_str)
+                            .unwrap_or("Untitled")
+                            .to_string();
+                        TabLabel::Text(file_name)
                     } else {
                         TabLabel::Text(String::from("New"))
                     };
