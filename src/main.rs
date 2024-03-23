@@ -10,6 +10,7 @@ use iced::{
     Alignment, Application, Command, Element, Font, Length, Settings,
     Subscription,
 };
+use iced_aw::{TabBar, TabLabel};
 
 use std::ffi;
 use std::io;
@@ -45,6 +46,8 @@ enum Message {
     FileOpened(Result<(PathBuf, Arc<String>), Error>),
     SaveFile,
     FileSaved(Result<PathBuf, Error>),
+    TabSelected(usize),
+    TabClosed(usize),
 }
 
 impl Application for Editor {
@@ -139,6 +142,12 @@ impl Application for Editor {
 
                 Command::none()
             }
+            Message::TabSelected(index) => {
+                Command::none()
+            }
+            Message::TabClosed(index) => {
+                Command::none()
+            }
         }
     }
 
@@ -198,8 +207,30 @@ impl Application for Editor {
         ]
         .spacing(10);
 
+        let tabs = self
+            .fragments
+            .iter()
+            .fold(
+                TabBar::new(Message::TabSelected),
+                |tab_bar, fragment| {
+                    let label = if let Some(file) = &fragment.file {
+                        TabLabel::Text(file.display().to_string())
+                    } else {
+                        TabLabel::Text(String::from("New"))
+                    };
+                    let idx = tab_bar.size();
+                    tab_bar.push(idx, label)
+                },
+            )
+            .on_close(Message::TabClosed)
+            .tab_width(Length::Shrink)
+            .spacing(5.0)
+            .padding(5.0)
+            .text_size(32.0);
+
         column![
             controls,
+            tabs,
             text_editor(&self.fragments[idx].content)
                 .height(Length::Fill)
                 .on_action(Message::ActionPerformed)
