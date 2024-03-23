@@ -24,9 +24,14 @@ pub fn main() -> iced::Result {
 }
 
 struct Editor {
+    theme: highlighter::Theme,
+    fragment_index: usize,
+    fragments: Vec<FragmentContent>,
+}
+
+struct FragmentContent {
     file: Option<PathBuf>,
     content: text_editor::Content,
-    theme: highlighter::Theme,
     is_loading: bool,
     is_dirty: bool,
 }
@@ -49,13 +54,17 @@ impl Application for Editor {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+        let fragment_content = FragmentContent {
+            file: None,
+            content: text_editor::Content::new(),
+            is_loading: true,
+            is_dirty: false,
+        };
         (
             Self {
-                file: None,
-                content: text_editor::Content::new(),
                 theme: highlighter::Theme::SolarizedDark,
-                is_loading: true,
-                is_dirty: false,
+                fragment_index: 0,
+                fragments: vec![fragment_content],
             },
             Command::perform(load_file(default_file()), Message::FileOpened),
         )
@@ -66,11 +75,12 @@ impl Application for Editor {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
+        let fragment = &mut self.fragments[self.fragment_index];
         match message {
             Message::ActionPerformed(action) => {
-                self.is_dirty = self.is_dirty || action.is_edit();
+                fragment.is_dirty = fragment.is_dirty || action.is_edit();
 
-                self.content.perform(action);
+                fragment.content.perform(action);
 
                 Command::none()
             }
@@ -80,51 +90,51 @@ impl Application for Editor {
                 Command::none()
             }
             Message::NewFile => {
-                if !self.is_loading {
-                    self.file = None;
-                    self.content = text_editor::Content::new();
+                if !fragment.is_loading {
+                    fragment.file = None;
+                    fragment.content = text_editor::Content::new();
                 }
 
                 Command::none()
             }
             Message::OpenFile => {
-                if self.is_loading {
+                if fragment.is_loading {
                     Command::none()
                 } else {
-                    self.is_loading = true;
+                    fragment.is_loading = true;
 
                     Command::perform(open_file(), Message::FileOpened)
                 }
             }
             Message::FileOpened(result) => {
-                self.is_loading = false;
-                self.is_dirty = false;
+                fragment.is_loading = false;
+                fragment.is_dirty = false;
 
                 if let Ok((path, contents)) = result {
-                    self.file = Some(path);
-                    self.content = text_editor::Content::with_text(&contents);
+                    fragment.file = Some(path);
+                    fragment.content = text_editor::Content::with_text(&contents);
                 }
 
                 Command::none()
             }
             Message::SaveFile => {
-                if self.is_loading {
+                if fragment.is_loading {
                     Command::none()
                 } else {
-                    self.is_loading = true;
+                    fragment.is_loading = true;
 
                     Command::perform(
-                        save_file(self.file.clone(), self.content.text()),
+                        save_file(fragment.file.clone(), fragment.content.text()),
                         Message::FileSaved,
                     )
                 }
             }
             Message::FileSaved(result) => {
-                self.is_loading = false;
+                fragment.is_loading = false;
 
                 if let Ok(path) = result {
-                    self.file = Some(path);
-                    self.is_dirty = false;
+                    fragment.file = Some(path);
+                    fragment.is_dirty = false;
                 }
 
                 Command::none()
@@ -142,17 +152,18 @@ impl Application for Editor {
     }
 
     fn view(&self) -> Element<Message> {
+        let idx = self.fragment_index;
         let controls = row![
             action(new_icon(), "New file", Some(Message::NewFile)),
             action(
                 open_icon(),
                 "Open file",
-                (!self.is_loading).then_some(Message::OpenFile)
+                (!self.fragments[idx].is_loading).then_some(Message::OpenFile)
             ),
             action(
                 save_icon(),
                 "Save file",
-                self.is_dirty.then_some(Message::SaveFile)
+                self.fragments[idx].is_dirty.then_some(Message::SaveFile)
             ),
             horizontal_space(),
             pick_list(
@@ -167,7 +178,7 @@ impl Application for Editor {
         .align_items(Alignment::Center);
 
         let status = row![
-            text(if let Some(path) = &self.file {
+            text(if let Some(path) = &self.fragments[idx].file {
                 let path = path.display().to_string();
 
                 if path.len() > 60 {
@@ -180,7 +191,7 @@ impl Application for Editor {
             }),
             horizontal_space(),
             text({
-                let (line, column) = self.content.cursor_position();
+                let (line, column) = self.fragments[idx].content.cursor_position();
 
                 format!("{}:{}", line + 1, column + 1)
             })
@@ -189,13 +200,14 @@ impl Application for Editor {
 
         column![
             controls,
-            text_editor(&self.content)
+            text_editor(&self.fragments[idx].content)
                 .height(Length::Fill)
                 .on_action(Message::ActionPerformed)
                 .highlight::<Highlighter>(
                     highlighter::Settings {
                         theme: self.theme,
                         extension: self
+                            .fragments[idx]
                             .file
                             .as_deref()
                             .and_then(Path::extension)
