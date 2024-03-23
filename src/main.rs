@@ -154,7 +154,7 @@ impl Application for Editor {
                 let fragment_content = FragmentContent {
                     file: None,
                     content: text_editor::Content::new(),
-                    is_loading: true,
+                    is_loading: false,
                     is_dirty: false,
                 };
                 self.fragments.push(fragment_content);
